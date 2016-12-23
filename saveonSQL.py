@@ -1,11 +1,14 @@
 import MySQLdb
-	
+
+#Check if there is a record with the name of the player. If it's found then the tuple tmp is len > 0 and therefore return True else False
 def checkExisitingPlayer(db, player):
 	c = db.cursor()
 	c.execute("SELECT * FROM PLAYERS WHERE PLAYERS.NAME = '" + player + "'")
 	tmp = c.fetchall()
 	return (len(tmp)) != 0
 
+#Insert a nwe player in the PLAYER table. Incase of error do a roll back
+#TODO rethrow exception with "raise IOError"
 def insertNewPlayer(db, player):
 	c = db.cursor()
 	try:
@@ -14,7 +17,9 @@ def insertNewPlayer(db, player):
 	except Exception as e:
 		print e
 		db.rollback()
-		
+
+#Add a new game in the the GAME table, the table contains all the winned game and some infos like score per play
+#Returns the new ID of the current game, None if error
 def addGame(db, duration, winner, score):
 	ID = _getIDnumber(db)
 	try:
@@ -27,6 +32,8 @@ def addGame(db, duration, winner, score):
 		print e
 		return None
 
+#return the new number for the play
+#NEEDS SOME CHECK FOR MULTITHREADING INCOMPATIBLILITY LIKE MULTIPLE REQUESTS. MAYBE IT'S GOOD TO SINGLETON THIS LIB
 def _getIDnumber(db):
 	c = db.cursor()
 	c.execute("SELECT MAX(GAME.ID) FROM GAME")
@@ -36,6 +43,7 @@ def _getIDnumber(db):
 	else:
 		return 0
 
+#Add a new player for a game in the table RELATION, the table contains all info about one play. Needs the ID of the current game gaved by the addGame() function
 def addPlayersToGame(db, players, duration, ID):
 	for player in players:
 		try:
@@ -56,8 +64,10 @@ def addPlayersToGame(db, players, duration, ID):
 #                print e
 #                print "here"        
 
+#the function that needs to be implemented in the monolithic file in order to replace the old one, Use current user, password, and database
+#IT COULD EVEN WORKS, BUT NEEDS SOME TESTING
 def saveScores(players, winner, score, time):
-	db = MySQLdb.connect(host="localhost", user="root", passwd="caldazzo", db="TEST")
+	db = MySQLdb.connect(host="localhost", user="root", passwd="password", db="TEST")
 	for player in players:
 		if not checkExisitingPlayer(db, player):
 			insertNewPlayer(db, player)
@@ -66,30 +76,45 @@ def saveScores(players, winner, score, time):
 	id = addGame(db, 12, winner, score)
 	addPlayersToGame(db, players, 12, id)
 
+#SQL QUERIES PART
+# ALL FUNCTIONS RETURNS TUPLE OR TUPLE OF TUPLES, NEEDS EXTRACTION WITH [] OPERATOR OF SINGLE ARGUMENTS. Void tuple if no selected, functions don't check that.
+
+#Returns all score for players. In DESC order. so just result[n] to check the first n. Be carefull if n > len(result). Use [] operator to access the intern of tuple
+#Tuples order [n] the nth player
+#Player's tuple order [0] name of the player, [1] score
 def getAllScores(db):
 	c = db.cursor()
 	c.execute("SELECT G.WINNER, SUM(G.SCORE) AS TOTALSCORE FROM GAME G GROUP BY G.WINNER ORDER BY TOTALSCORE DESC")
 	tmp = c.fetchall()
 	return tmp
-	
+
+#Returns score for one player. Use [] operator to access the intern of tuple
+#Tuple order [0] name of the player, [1] score
 def getPlayerScore(db, player):
 	c = db.cursor()
 	c.execute("SELECT G.WINNER, SUM(G.SCORE) AS TOTALSCORE FROM GAME G GROUP BY G.WINNER HAVING G.WINNER = '" + player + "'")
 	tmp = c.fetchall()
 	return tmp
-	
+
+#Returns the number of played games.  Use [] operator to access the intern of tuple
+#Tuple order [0] player's name, [1] played
 def getPlayedPerPlayer(db, player):
 	c = db.cursor()
 	c.execute("SELECT R.PLAYER, COUNT(*) FROM RELATION R GROUP BY R.PLAYER HAVING R.PLAYER = '" + player + "'")
 	tmp = c.fetchone()
 	return tmp
-	
+
+#Returns the number of played games.  Use [] operator to access the intern of tuple
+#Tuple order [0] player's name, [1] winned
 def getWinnedPerPlayer(db, player):
 	c = db.cursor()
 	c.execute("SELECT G.WINNER, COUNT(*) FROM GAME G GROUP BY G.WINNER HAVING G.WINNER = '" + player + "'")
 	tmp = c.fetchone()
 	return tmp
-	
+
+#Returns all score for players with percentual of winned. In DESC order. So just result[n] to check the first n. Be carefull if n > len(result). Use [] operator to access the intern of tuple.
+#This could be CPU-heavy in some low level hardware, so use the getAllScore() one if you don't need ratio.
+#The tuple order is [0] player's name, [1] how much winner, [2] how much played, [3] winned ratio in percentual (Could needs cast to float)
 def getAllScoresPercentual(db):
 	c = db.cursor()
 	c.execute("""SELECT WINNED.WINNER, WINNED.WINNED, PLAYED.PLAYED, (WINNED.WINNED/PLAYED.PLAYED*100) AS RATIO
@@ -114,5 +139,6 @@ def getAllScoresPercentual(db):
 #saveScores(players, "chkrr00k", 1, 2)
 #saveScores(players, "Audi", 1, 1)
 
-db = MySQLdb.connect(host="localhost", user="root", passwd="caldazzo", db="TEST")
+#Use this to pass the db object to functions
+db = MySQLdb.connect(host="localhost", user="root", passwd="password", db="TEST")
 print getAllScoresPercentual(db)
