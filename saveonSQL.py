@@ -1,5 +1,10 @@
 import MySQLdb
 
+### /!\ BE CAREFULL NO EXCEPTION CONTROL /!\ ###
+# GLOBAL TODO Externalize queries
+
+#Technically this lib can suffre of SQLinjection but hence the nature of the IRC protocol chars such as ' or " or <space> aren't usable. This means only one word commands can be injected by user names. 
+
 #Check if there is a record with the name of the player. If it's found then the tuple tmp is len > 0 and therefore return True else False
 def checkExisitingPlayer(db, player):
 	c = db.cursor()
@@ -7,7 +12,7 @@ def checkExisitingPlayer(db, player):
 	tmp = c.fetchall()
 	return (len(tmp)) != 0
 
-#Insert a nwe player in the PLAYER table. Incase of error do a roll back
+#Insert a new player in the PLAYER table. Incase of error do a roll back
 #TODO rethrow exception with "raise IOError"
 def insertNewPlayer(db, player):
 	c = db.cursor()
@@ -52,29 +57,22 @@ def addPlayersToGame(db, players, duration, ID):
 			db.commit()
 		except Exception as e:
 			db.rollback()
-			print e
-
-#def updatePlayerScore(db, player, score):
-#        try:
-#                c = db.cursor()
-#                c.execute("UPDATE PLAYERS SET SCORE = " + str(score) + " WHERE NAME = '" + player + "'")
-#                db.commit()
-#        except Exception as e:
-#                db.rollback()
-#                print e
-#                print "here"        
+			print e       
 
 #the function that needs to be implemented in the monolithic file in order to replace the old one, Use current user, password, and database
 #IT COULD EVEN WORKS, BUT NEEDS SOME TESTING
 def saveScores(players, winner, score, time):
-	db = MySQLdb.connect(host="localhost", user="root", passwd="password", db="TEST")
+	if winner not in players:
+		raise IOError
+	db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
 	for player in players:
 		if not checkExisitingPlayer(db, player):
 			insertNewPlayer(db, player)
     
 #	updatePlayerScore(db, winner, score)
-	id = addGame(db, 12, winner, score)
-	addPlayersToGame(db, players, 12, id)
+	id = addGame(db, time, winner, score)
+	addPlayersToGame(db, players, time, id)
+	db.close()
 
 #SQL QUERIES PART
 # ALL FUNCTIONS RETURNS TUPLE OR TUPLE OF TUPLES, NEEDS EXTRACTION WITH [] OPERATOR OF SINGLE ARGUMENTS. Void tuple if no selected, functions don't check that.
@@ -112,14 +110,15 @@ def getWinnedPerPlayer(db, player):
 	tmp = c.fetchone()
 	return tmp
 
-#Returns all score for players with percentual of winned. In DESC order. So just result[n] to check the first n. Be carefull if n > len(result). Use [] operator to access the intern of tuple.
+#Returns all score for players with percentual of winned. So just result[n] to check the first n. Be carefull if n > len(result). Use [] operator to access the intern of tuple.
+#Returned list is ordered by ratio DESC
 #This could be CPU-heavy in some low level hardware, so use the getAllScore() one if you don't need ratio.
-#The tuple order is [0] player's name, [1] how much winner, [2] how much played, [3] winned ratio in percentual (Could needs cast to float)
+#The tuple order is [0] player's name, [1] how much winner, [2] how much played, [3] point per game, [4] winned ratio in percentual (Could needs cast to float)
 def getAllScoresPercentual(db):
 	c = db.cursor()
-	c.execute("""SELECT WINNED.WINNER, WINNED.WINNED, PLAYED.PLAYED, (WINNED.WINNED/PLAYED.PLAYED*100) AS RATIO
+	c.execute("""SELECT WINNED.WINNER, WINNED.WINNED, PLAYED.PLAYED, (WINNED.SCORE/PLAYED.PLAYED) AS POINT_PER_GAME, (WINNED.WINNED/PLAYED.PLAYED*100) AS RATIO
 	FROM (
-		SELECT G.WINNER, COUNT(*) AS WINNED
+		SELECT G.WINNER, SUM(G.SCORE) AS SCORE, COUNT(*) AS WINNED
 		FROM GAME G
 		GROUP BY G.WINNER
 	)AS WINNED,
@@ -134,11 +133,41 @@ def getAllScoresPercentual(db):
 	tmp = c.fetchall()
 	return tmp
 
-#players = ["Alguem", "chkrr00k", "Audi"]
-#saveScores(players, "Alguem", 3, 1)
-#saveScores(players, "chkrr00k", 1, 2)
-#saveScores(players, "Audi", 1, 1)
+#Returns all score for players with percentual of winned. In DESC order. Use this function to get the first n players in the whole range
+#Returned list is ordered by ratio DESC
+#This could be CPU-heavy in some low level hardware, so use the getAllScore() one if you don't need ratio.
+#The tuple order is [0] player's name, [1] how much winner, [2] how much played, [3] point per game, [4] winned ratio in percentual (Could needs cast to float)
+def getAllScoreForBestN(db, number):
+	result = getAllScoresPercentual(db)
+	if len(result) <= number:
+		return result
+	else:
+		return result[:number]
+
+### FORMAT AND PRINTING FUNCTIONS
+
+def format(inTuple):
+	i = 1
+	for tup in inTuple:
+		print "%d %s, Winned: %d, Played: %d, Point per game %.2f, Ratio: %.2f" % (i, tup[0], tup[1], tup[2], tup[3], tup[4])
+		i += 1
+		
+### DATABASE SETTINGS
+DB_PASSWORD = "unopass"
+DB_HOST = "localhost"
+DB_USER = "unobot"
+DB_NAME = "TEST"
+
+###TEST ROWS
+#players = ["Audi", "Alguem", "Milad"]
+#saveScores(players, "chkrr00k", 3, 1)
+#saveScores(players, "Audi", 4, 2)
+#saveScores(players, "Milad", 3, 4)
 
 #Use this to pass the db object to functions
-db = MySQLdb.connect(host="localhost", user="root", passwd="password", db="TEST")
-print getAllScoresPercentual(db)
+db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
+#print getAllScoresPercentual(db)
+#print getAllScoreForBestN(db, 12)
+format(getAllScoreForBestN(db, 12))
+db.close()
+
