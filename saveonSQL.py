@@ -148,10 +148,12 @@ def getAllScoreForBestN(db, number):
 
 def format(inTuple):
 	i = 1
+	result = list()
 	for tup in inTuple:
-		print "%d %s, Winned: %d, Played: %d, Point per game %.2f, Ratio: %.2f" % (i, tup[0], tup[1], tup[2], tup[3], tup[4])
+		result.append("%d %s, Winned: %d, Played: %d, Point per game %.2f, Ratio: %.2f/n" % (i, tup[0], tup[1], tup[2], tup[3], tup[4]))
 		i += 1
-		
+	return result
+	
 ### DATABASE SETTINGS
 DB_PASSWORD = "unopass"
 DB_HOST = "localhost"
@@ -165,9 +167,24 @@ DB_NAME = "TEST"
 #saveScores(players, "Milad", 3, 4)
 
 #Use this to pass the db object to functions
-db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
+#db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
 #print getAllScoresPercentual(db)
 #print getAllScoreForBestN(db, 12)
-format(getAllScoreForBestN(db, 12))
-db.close()
+#format(getAllScoreForBestN(db, 12))
+#db.close()
 
+##########################################
+#TESTED AND WORKING
+    def top10(self, jenni, input):
+        ### DATABASE SETTINGS
+        DB_PASSWORD = "unopass"
+        DB_HOST = "localhost"
+        DB_USER = "unobot"
+        DB_NAME = "TEST"
+        db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
+        nickk = (input.nick)
+        lines = (format(getAllScoreForBestN(db, 10)))
+        for line in lines:
+                jenni.msg(nickk, str(line))
+        db.close()
+#######################################	
