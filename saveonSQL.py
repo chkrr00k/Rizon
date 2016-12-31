@@ -8,6 +8,7 @@ import MySQLdb
 #Check if there is a record with the name of the player. If it's found then the tuple tmp is len > 0 and therefore return True else False
 def checkExisitingPlayer(db, player):
 	c = db.cursor()
+	print "SELECT * FROM PLAYERS WHERE PLAYERS.NAME = '" + player + "'"
 	c.execute("SELECT * FROM PLAYERS WHERE PLAYERS.NAME = '" + player + "'")
 	tmp = c.fetchall()
 	return (len(tmp)) != 0
@@ -17,6 +18,7 @@ def checkExisitingPlayer(db, player):
 def insertNewPlayer(db, player):
 	c = db.cursor()
 	try:
+		print "INSERT INTO PLAYERS(NAME) VALUE('" + player + "')"
 		c.execute("INSERT INTO PLAYERS(NAME) VALUE('" + player + "')")
 		db.commit()
 	except Exception as e:
@@ -27,8 +29,10 @@ def insertNewPlayer(db, player):
 #Returns the new ID of the current game, None if error
 def addGame(db, duration, winner, score):
 	ID = _getIDnumber(db)
+	print ID
 	try:
 		c = db.cursor()
+		print "INSERT INTO GAME(WINNER, DURATION, ID, SCORE) VALUE('" + winner + "'," + str(duration) + "," + str(ID) + ","+ str(score) +")"
 		c.execute("INSERT INTO GAME(WINNER, DURATION, ID, SCORE) VALUE('" + winner + "'," + str(duration) + "," + str(ID) + ","+ str(score) +")")
 		db.commit()
 		return ID
@@ -53,6 +57,7 @@ def addPlayersToGame(db, players, duration, ID):
 	for player in players:
 		try:
 			c = db.cursor()
+			print "INSERT INTO RELATION(PLAYER, DURATION, ID) VALUE('" + player + "'," + str(duration) + "," + str(ID) + ")"
 			c.execute("INSERT INTO RELATION(PLAYER, DURATION, ID) VALUE('" + player + "'," + str(duration) + "," + str(ID) + ")")
 			db.commit()
 		except Exception as e:
@@ -71,6 +76,7 @@ def saveScores(players, winner, score, time):
     
 #	updatePlayerScore(db, winner, score)
 	id = addGame(db, time, winner, score)
+	print id
 	addPlayersToGame(db, players, time, id)
 	db.close()
 
@@ -161,8 +167,8 @@ DB_USER = "unobot"
 DB_NAME = "TEST"
 
 ###TEST ROWS
-#players = ["Audi", "Alguem", "Milad"]
-#saveScores(players, "chkrr00k", 3, 1)
+players = ['chkrr00k','dd']
+saveScores(players, 'dd', 92, 618)
 #saveScores(players, "Audi", 4, 2)
 #saveScores(players, "Milad", 3, 4)
 
@@ -173,18 +179,26 @@ DB_NAME = "TEST"
 #format(getAllScoreForBestN(db, 12))
 #db.close()
 
+#PUT THIS IN THE ORIGINAL UNOBOT FILE AND REMOVE FUNCTIONS WITH SAME NAME
 ##########################################
 #TESTED AND WORKING
-    def top10(self, jenni, input):
-        ### DATABASE SETTINGS
-        DB_PASSWORD = "unopass"
-        DB_HOST = "localhost"
-        DB_USER = "unobot"
-        DB_NAME = "TEST"
-        db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
-        nickk = (input.nick)
-        lines = (format(getAllScoreForBestN(db, 10)))
-        for line in lines:
-                jenni.msg(nickk, str(line))
-        db.close()
+#    def top10(self, jenni, input):
+#        ### DATABASE SETTINGS
+#        DB_PASSWORD = "unopass"
+#        DB_HOST = "localhost"
+#        DB_USER = "unobot"
+#        DB_NAME = "TEST"
+#        db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
+#        nickk = (input.nick)
+#        lines = (format(getAllScoreForBestN(db, 10)))
+#        for line in lines:
+#                jenni.msg(nickk, str(line))
+#        db.close()
+#
+#    def saveScores(self, players, winner, score, time):
+#        try:
+#            saveScores(players, winner, score, time)
+#        except Exception, e:
+#            print 'I TRIED SO HARD %s' % e
+#
 #######################################	
