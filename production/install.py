@@ -2,11 +2,11 @@ import MySQLdb
 ### DATABASE SETTINGS
 DB_PASSWORD = "unopass"
 DB_HOST = "localhost"
-DB_USER = "unobot"
-DB_NAME = "TEST"
+DB_USER = "unobot2"
+DB_NAME = "TEST2"
 
 ROOT_DB_USER = "root"
-ROOT_DB_PASS = "__insert_Password_Here__"
+ROOT_DB_PASSWORD = ""
 
 #Use this to db
 #db = MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME)
@@ -25,7 +25,7 @@ def install():
     db = MySQLdb.connect(host=DB_HOST, user=ROOT_DB_USER, passwd=ROOT_DB_PASSWORD, db=DB_NAME)
     createTables(db)
     db.close()
-    print "success!"
+    print "Process terminated!"
 
 def createDatabase(db):
     try:
@@ -40,7 +40,7 @@ def createDatabase(db):
 def createUser(db):
     try:
         c = db.cursor()
-        c.execute("CREATE USER '" + DB_USER + "' IDENTIFIED BY '" + DB_PASSWORD + "'")
+        c.execute("CREATE USER \"" + DB_USER + "\" IDENTIFIED BY \"" + DB_PASSWORD + "\"")
         db.commit()
     except Exception as e:
         db.rollback()
@@ -65,7 +65,7 @@ def grantPermissions(db):
         print "Error while granting INSERT to user"
         print e
         
-def createTables():
+def createTables(db):
     try:
         c = db.cursor()
         c.execute("""CREATE TABLE PLAYERS(NAME VARCHAR(200) NOT NULL PRIMARY KEY)""")
@@ -103,5 +103,8 @@ def createTables():
         print e
         return
 
+print "Type your MySQL root password"
+ROOT_DB_PASSWORD = raw_input()
+print "Starting..."
 install()
     
